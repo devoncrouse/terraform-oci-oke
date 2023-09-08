@@ -50,6 +50,7 @@ variableGroups:
   - title: "SSH"
     variables:
       - ssh_public_key
+      - ssh_kms_vault_compartment_id
       - ssh_kms_vault_id
       - ssh_kms_secret_id
 
@@ -191,20 +192,27 @@ variables:
     type: oci:core:ssh:publickey
     pattern: "((^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+\/]+[=]{0,3})( [^,]*)?)(,((ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+\/]+[=]{0,3})( [^,]*)?)*$"
     required: false
+  ssh_kms_vault_compartment_id:
+    title: SSH Vault Compartment
+    type: oci:identity:compartment:id
+    required: true
+    default: ${compartment_ocid}
+    dependsOn:
+      compartmentId: ${compartment_ocid}
   ssh_kms_vault_id:
     title: SSH Vault
     description: The OCI Vault used to encrypt the SSH key pair.
     type: oci:kms:vault:id
     required: true
     dependsOn:
-      compartmentId: ${compartment_ocid}
+      compartmentId: ${ssh_kms_vault_compartment_id}
   ssh_kms_secret_id:
     title: SSH Vault secret
     description: The OCI Vault secret containing the SSH private key.
     type: oci:kms:secret:id
     required: true
     dependsOn:
-      compartmentId: ${compartment_ocid}
+      compartmentId: ${ssh_kms_vault_compartment_id}
       vaultId: ${ssh_kms_vault_id}
 
   # Cluster

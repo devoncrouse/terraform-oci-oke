@@ -92,8 +92,8 @@ variable "worker_memory" { default = 16 }
 variable "worker_boot_volume_size" { default = 50 }
 variable "worker_pv_transit_encryption" { default = false }
 
-variable "worker_disable_default_cloud_init" { type = bool }
-variable "worker_cloud_init_configure" { type = bool }
+variable "worker_disable_default_cloud_init" { default = false }
+variable "worker_cloud_init_configure" { default = false }
 variable "worker_cloud_init_content_type" {
   default = "text/x-shellscript"
   type    = string
