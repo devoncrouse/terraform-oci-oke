@@ -261,3 +261,9 @@ variable "drg_attachments" {
   type        = any
   default     = {}
 }
+
+variable "update_nat_route_table" {
+  type        = bool
+  default     = true
+  description = "Update changes to NAT route rules on existing VCN and infra"
+}

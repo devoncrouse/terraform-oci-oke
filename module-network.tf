@@ -23,10 +23,11 @@ locals {
 }
 
 module "vcn" {
-  count          = var.create_vcn ? 1 : 0
-  source         = "oracle-terraform-modules/vcn/oci"
-  version        = "3.5.4"
-  compartment_id = coalesce(var.network_compartment_id, local.compartment_id)
+  count                  = var.create_vcn ? 1 : 0
+  source                 = "oracle-terraform-modules/vcn/oci"
+  version                = "3.5.5"
+  compartment_id         = coalesce(var.network_compartment_id, local.compartment_id)
+  update_nat_route_table = var.update_nat_route_table
 
   # Standard tags as defined if enabled for use, or freeform
   # User-provided tags are merged last and take precedence
