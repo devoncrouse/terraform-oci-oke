@@ -33,6 +33,11 @@ variable "enable_waf" { type = bool }
 variable "ig_route_table_id" { type = string }
 variable "load_balancers" { type = string }
 variable "nat_route_table_id" { type = string }
+variable "update_nat_route_table" {
+  type        = bool
+  default     = true
+  description = "Update changes to NAT route rules on existing VCN and infra"
+}
 variable "vcn_cidrs" { type = list(string) }
 variable "vcn_id" { type = string }
 variable "worker_is_public" { type = bool }
