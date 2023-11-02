@@ -12,7 +12,8 @@ locals {
 }
 
 module "oke" {
-  source    = "github.com/oracle-terraform-modules/terraform-oci-oke.git?ref=tf12&depth=1"
+  source = "github.com/devoncrouse/terraform-oci-oke.git?ref=fix-agent-tf12&depth=1"
+  #source    = "github.com/oracle-terraform-modules/terraform-oci-oke.git?ref=tf12&depth=1"
   providers = { oci.home = oci.home }
 
   # Identity
