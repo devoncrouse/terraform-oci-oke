@@ -165,7 +165,6 @@ resource "oci_core_instance_configuration" "workers" {
       instance_details[0].launch_details[0].freeform_tags,
       instance_details[0].launch_details[0].create_vnic_details[0].defined_tags,
       instance_details[0].launch_details[0].create_vnic_details[0].freeform_tags,
-      instance_details[0].launch_details[0].agent_config, # TODO Not updateable; remove when supported
       instance_details[0].secondary_vnics,
     ]
   }
