@@ -159,7 +159,7 @@ variables:
     type: oci:core:vcn:id
     required: true
     dependsOn:
-      compartmentId: ${compartment_ocid}
+      compartmentId: ${vcn_compartment_ocid}
     visible: { not: [create_vcn] }
   vcn_name:
     title: Virtual Cloud Network (VCN) name

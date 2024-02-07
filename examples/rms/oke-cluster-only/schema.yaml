@@ -54,9 +54,9 @@ variableGroups:
 
   - title: "Operator"
     variables:
+      - ${create_operator}
       - operator_subnet_id
       - operator_nsg_id
-      - ${create_operator}
       - operator_upgrade
       - operator_availability_domain
       - operator_private_ip
@@ -147,15 +147,6 @@ variableGroups:
       - prometheus_helm_values
       - prometheus_helm_values_files
 
-  - title: "DCGM exporter"
-    visible: dcgm_exporter_install
-    variables:
-      - dcgm_exporter_reapply
-      - dcgm_exporter_namespace
-      - dcgm_exporter_helm_version
-      - dcgm_exporter_helm_values
-      - dcgm_exporter_helm_values_files
-
   - title: "Gatekeeper"
     visible: gatekeeper_install
     variables:
@@ -171,21 +162,6 @@ variableGroups:
       - multus_daemonset_url
       - multus_version
 
-  - title: "Whereabouts"
-    visible: whereabouts_install
-    variables:
-      - whereabouts_namespace
-      - whereabouts_daemonset_url
-      - whereabouts_version
-
-  - title: "SR-IOV Device Plugin"
-    visible: sriov_device_plugin_install
-    variables:
-      - sriov_device_plugin_install_config
-      - sriov_device_plugin_namespace
-      - sriov_device_plugin_daemonset_url
-      - sriov_device_plugin_version
-
   - title: "SR-IOV CNI Plugin"
     visible: sriov_cni_plugin_install
     variables:
@@ -199,13 +175,6 @@ variableGroups:
       - rdma_cni_plugin_namespace
       - rdma_cni_plugin_daemonset_url
       - rdma_cni_plugin_version
-
-  - title: "MPI Operator"
-    visible: mpi_operator_install
-    variables:
-      - mpi_operator_namespace
-      - mpi_operator_deployment_url
-      - mpi_operator_version
 
 variables:
   # Identity
@@ -416,6 +385,7 @@ variables:
     type: oci:identity:compartment:id
     required: true
     default: ${compartment_ocid}
+    visible: ${create_operator}
     dependsOn:
       compartmentId: ${compartment_ocid}
   ssh_kms_vault_id:
@@ -423,6 +393,7 @@ variables:
     description: The OCI Vault used to encrypt the SSH key pair.
     type: oci:kms:vault:id
     required: true
+    visible: ${create_operator}
     dependsOn:
       compartmentId: ${ssh_kms_vault_compartment_id}
   ssh_kms_secret_id:
@@ -430,6 +401,7 @@ variables:
     description: The OCI Vault secret containing the SSH private key.
     type: oci:kms:secret:id
     required: true
+    visible: ${create_operator}
     dependsOn:
       compartmentId: ${ssh_kms_vault_compartment_id}
       vaultId: ${ssh_kms_vault_id}
@@ -798,31 +770,6 @@ variables:
     title: Helm chart values
     visible: false
   prometheus_helm_values_files:
-    title: Helm chart values files
-    visible: false
-
-  # DCMG
-  dcgm_exporter_install:
-    title: Install DCGM exporter
-    description: Deploy the Data Center GPU Manager metrics exporter for Prometheus. See <a href=https://github.com/NVIDIA/dcgm-exporter>NVIDIA/dcgm-exporter</a> for more information.
-    type: boolean
-    default: false
-    required: true
-  dcgm_exporter_reapply:
-    title: Re-apply
-    type: boolean
-    default: false
-    required: true
-  dcgm_exporter_namespace:
-    title: Kubernetes namespace
-    type: string
-  dcgm_exporter_helm_version:
-    title: Helm chart version
-    type: string
-  dcgm_exporter_helm_values:
-    title: Helm chart values
-    visible: false
-  dcgm_exporter_helm_values_files:
     title: Helm chart values files
     visible: false
 

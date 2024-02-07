@@ -67,8 +67,8 @@ module "oke" {
   ssh_private_key = sensitive(local.ssh_key_bundle_content)
 
   # Cluster
-  cluster_kms_key_id      = var.cluster_kms_key_id
-  cluster_name            = var.cluster_name
+  cluster_kms_key_id = var.cluster_kms_key_id
+  # cluster_name            = var.cluster_name
   cluster_type            = lower(var.cluster_type)
   cni_type                = lower(var.cni_type)
   create_cluster          = true

@@ -8,11 +8,8 @@ module "oke" {
   compartment_id = var.compartment_ocid
 
   # Identity
-  create_iam_resources     = true
-  create_iam_tag_namespace = var.create_iam_tag_namespace
-  create_iam_defined_tags  = var.create_iam_tag_namespace || var.create_iam_defined_tags
-  use_defined_tags         = var.use_defined_tags
-  tag_namespace            = var.tag_namespace
+  use_defined_tags = var.use_defined_tags
+  tag_namespace    = var.tag_namespace
 
   # Network
   create_vcn                  = var.create_vcn
