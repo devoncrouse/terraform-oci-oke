@@ -1,0 +1,682 @@
+# Copyright (c) 2024 Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl
+
+title: "OKE: Model training & inference quickstart"
+description: An Oracle Cloud Infrastructure deployment for large model training and inference on OKE.
+schemaVersion: 1.1.0
+version: "20230304"
+locale: "en"
+
+variableGroups:
+  - title: "Hidden"
+    visible: false
+    variables:
+      - allow_node_port_access
+      - allow_pod_internet_access
+      - allow_rules_internal_lb
+      - allow_rules_public_lb
+      - allow_worker_internet_access
+      - allow_worker_ssh_access
+      - api_fingerprint
+      - api_fingerprint
+      - control_plane_allowed_cidrs
+      - create_bastion
+      - create_nsgs
+      - current_user_ocid
+      - ig_route_table_id
+      - oci_auth
+      - oci_profile
+      - region
+      - service_gateway_id
+      - subnets
+      - tag_namespace
+      - tenancy_ocid
+      - vcn_dns_label
+      - worker_cpu_image_id
+      - worker_image_id
+      - worker_ops_boot_volume_size
+
+  - title: "Identity"
+    variables:
+      - create_policies
+
+  - title: Network
+    variables:
+      - create_vcn
+      - vcn_compartment_ocid
+      - vcn_id
+      - vcn_name
+      - vcn_cidrs
+      - assign_dns
+      - create_bastion
+      - bastion_shape
+      - ssh_public_key
+
+  - title: Storage
+    variables:
+      - create_fss
+      - fss_ad
+      - fss_size
+      - fss_namespaces
+
+  - title: Cluster
+    variables:
+      - compartment_ocid
+      - cluster_name
+      - kubernetes_version
+      - create_operator
+      - operator_shape_config
+      - operator_shape_name
+      - operator_shape_ocpus
+      - operator_shape_memory
+      - operator_shape_boot
+
+  - title: Container Registry
+    variables:
+      - configure_ocir
+      - ocir_username
+      - ocir_email_address
+      - ocir_secret_id
+      - ocir_secret_namespace
+      - ocir_secret_name
+
+  - title: "Workers: Operational"
+    variables:
+      - worker_ops_pool_size
+      - worker_ops_shape
+      - worker_ops_ocpus
+      - worker_ops_memory
+
+  - title: "Workers: CPU"
+    variables:
+      - worker_cpu_enabled
+      - worker_cpu_pool_size
+      - worker_cpu_shape
+      - worker_cpu_ocpus
+      - worker_cpu_memory
+      - worker_cpu_boot_volume_size
+      - worker_cpu_image_type
+      - worker_cpu_image_os
+      - worker_cpu_image_os_version
+      - worker_cpu_image_platform_id
+      - worker_cpu_image_custom_id
+
+  - title: "Workers: GPU"
+    variables:
+      - worker_gpu_enabled
+      - worker_gpu_pool_size
+      - worker_gpu_shape
+      - worker_gpu_boot_volume_size
+
+  - title: "Workers: GPU + RDMA"
+    variables:
+      - worker_rdma_enabled
+      - worker_rdma_pool_size
+      - worker_rdma_shape
+      - worker_rdma_boot_volume_size
+
+variables:
+  current_user_ocid:
+    title: User
+    type: ocid
+  oci_auth:
+    default: null
+  oci_profile:
+    default: null
+  tenancy_ocid:
+    title: Tenancy
+    type: oci:identity:compartment:id
+    required: true
+  compartment_ocid:
+    title: Compartment
+    description: The default compartment for created resources.
+    type: oci:identity:compartment:id
+    required: true
+  region:
+    required: true
+    title: Region
+    type: oci:identity:region:name
+
+  # Identity
+  create_policies:
+    title: Create policies
+    description: Provision a Dynamic Group with policies for Cluster Autoscaler, Self-managed nodes
+    type: boolean
+    default: true
+
+  # VCN
+  create_vcn:
+    title: Create VCN
+    type: boolean
+    default: true
+  vcn_compartment_ocid:
+    title: VCN Compartment
+    type: oci:identity:compartment:id
+    required: false
+    default: ${compartment_ocid}
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+    visible: { not: [create_vcn] }
+  vcn_id:
+    title: Existing VCN
+    type: oci:core:vcn:id
+    required: true
+    dependsOn:
+      compartmentId: ${vcn_compartment_ocid}
+    visible: { not: [create_vcn] }
+  vcn_name:
+    title: Virtual Cloud Network (VCN) name
+    description: Display name for the created VCN. Defaults to 'oke' suffixed with the generated Terraform 'state_id' value.
+    type: string
+    required: true
+    visible: ${create_vcn}
+  assign_dns:
+    title: Assign DNS records
+    type: boolean
+    required: true
+  vcn_cidrs:
+    title: VCN CIDR ranges
+    description: Comma-separated list of CIDR blocks for the created VCN.
+    type: string
+    required: true
+    visible: ${create_vcn}
+
+  # Storage
+  create_fss:
+    title: Create FSS volume
+    description: Provision a shared File Storage Service (FSS) filesystem
+    type: boolean
+    default: true
+    required: true
+  fss_ad:
+    title: FSS availability domain
+    type: oci:identity:availabilitydomain:name
+    required: true
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+  fss_size:
+    title: FSS volume size (GiB)
+    type: integer
+    required: true
+    visible: ${create_fss}
+  fss_namespaces:
+    title: FSS namespaces
+    description: List of Kubernetes namespaces for creation of shared FSS PVCs.
+    required: false
+    type: array
+    items:
+      type: string
+    unique_items: true
+    minItems: 0
+    default: [default]
+    visible: ${create_fss}
+
+  # Cluster
+  cluster_name:
+    type: string
+    title: Cluster name
+    description: The Container Engine for Kubernetes cluster name.
+    required: true
+  kubernetes_version:
+    type: oci:kubernetes:versions:id
+    title: Kubernetes version
+    description: The Kubernetes version for the created OKE cluster and managed nodes.
+    required: true
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+      clusterOptionId: "all"
+  create_operator:
+    title: Create operator instance
+    description: Provision an OCI Compute instance configured with access to interact with the OKE Kubernetes endpoint.
+    type: boolean
+    default: true
+    required: false
+  operator_shape_config:
+    title: Configure operator shape
+    type: boolean
+    default: false
+    required: false
+  operator_shape_name:
+    title: Shape
+    type: oci:core:instanceshape:name
+    pattern: "^(VM|BM)\\.(?!GPU).*$"
+    required: true
+    visible: ${operator_shape_config}
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+  operator_shape_ocpus:
+    title: OCPUs
+    type: number
+    required: true
+    visible:
+      and:
+      - operator_shape_config
+      - or:
+          - eq: [worker_ops_shape, "VM.Standard3.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.A1.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E4.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E5.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.x86.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.AMD.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Ampere.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Intel.Generic"]
+  operator_shape_memory:
+    title: Memory (GB)
+    type: number
+    required: true
+    visible:
+      and:
+      - operator_shape_config
+      - or:
+          - eq: [worker_ops_shape, "VM.Standard3.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.A1.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E4.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E5.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.x86.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.AMD.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Ampere.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Intel.Generic"]
+  operator_shape_boot:
+    title: Boot volume size (GB)
+    type: number
+    required: true
+    visible:
+      and:
+      - operator_shape_config
+      - or:
+          - eq: [worker_ops_shape, "VM.Standard3.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.A1.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E4.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E5.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.x86.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.AMD.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Ampere.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Intel.Generic"]
+
+  # OCIR
+  configure_ocir:
+    title: Configure container registry (OCIR)
+    type: boolean
+    default: false
+  ocir_username:
+    title: Username
+    visible: configure_ocir
+  ocir_email_address:
+    title: Email address
+    visible: configure_ocir
+  ocir_secret_namespace:
+    title: Secret namespace
+    visible: configure_ocir
+  ocir_secret_name:
+    title: Secret name
+    visible: configure_ocir
+  # ocir_kms_vault_id:
+  #   title: Vault ID
+  #   type: oci:kms:vault:id
+  #   required: false
+  #   dependsOn:
+  #     compartmentId: ${compartment_ocid}
+  #   visible: configure_ocir
+  # ocir_kms_secret_id:
+  #   title: Vault secret ID
+  #   type: oci:kms:secret:id
+  #   required: false
+  #   dependsOn:
+  #     compartmentId: ${compartment_ocid}
+  #     vaultId: ${ocir_kms_vault_id}
+  #   visible: configure_ocir
+
+  # SSH
+  create_bastion:
+    title: Create bastion host
+    type: boolean
+    description: Create a Compute instance for public SSH access to VCN.
+  ssh_public_key:
+    title: SSH Public Key
+    type: oci:core:ssh:publickey
+    pattern: "((^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+\/]+[=]{0,3})( [^,]*)?)(,((ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+\/]+[=]{0,3})( [^,]*)?)*$"
+    required: false
+    visible: ${create_bastion}
+  bastion_shape:
+    title: Bastion instance shape
+    type: oci:core:instanceshape:name
+    pattern: "^(VM|BM)\\.Standard.*$"
+    required: true
+    visible: ${create_bastion}
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+
+  worker_ops_pool_size:
+    title: Number of operational worker nodes
+    type: number
+    required: true
+  worker_ops_shape:
+    title: Shape
+    type: oci:core:instanceshape:name
+    pattern: "^(VM|BM)\\.Standard.*$"
+    required: true
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+  worker_ops_ocpus:
+    title: OCPUs
+    type: number
+    required: true
+    visible:
+      - or:
+          - eq: [worker_ops_shape, "VM.Standard3.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.A1.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E4.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E5.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.x86.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.AMD.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Ampere.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Intel.Generic"]
+  worker_ops_memory:
+    title: Memory (GB)
+    type: number
+    required: true
+    visible:
+      - or:
+          - eq: [worker_ops_shape, "VM.Standard3.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.A1.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E4.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.E5.Flex"]
+          - eq: [worker_ops_shape, "VM.Standard.x86.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.AMD.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Ampere.Generic"]
+          - eq: [worker_ops_shape, "VM.Standard.Intel.Generic"]
+
+  worker_cpu_enabled:
+    title: Create CPU pool
+    type: boolean
+    description: Create an OKE-managed general purpose node pool
+  worker_cpu_pool_size:
+    title: Number of worker nodes
+    type: number
+    visible: ${worker_cpu_enabled}
+  worker_cpu_shape:
+    title: Shape
+    type: oci:core:instanceshape:name
+    pattern: "^(VM|BM)\\.(Standard|Dense).*$"
+    default: "VM.Standard.A1.Flex"
+    required: true
+    visible: ${worker_cpu_enabled}
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+  worker_cpu_ocpus:
+    title: OCPUs
+    type: number
+    required: true
+    visible:
+      and:
+        - ${worker_cpu_enabled}
+        - or:
+          - eq: [worker_cpu_shape, "VM.Standard3.Flex"]
+          - eq: [worker_cpu_shape, "VM.Standard.A1.Flex"]
+          - eq: [worker_cpu_shape, "VM.Standard.E4.Flex"]
+          - eq: [worker_cpu_shape, "VM.Standard.E5.Flex"]
+          - eq: [worker_cpu_shape, "VM.Standard.x86.Generic"]
+          - eq: [worker_cpu_shape, "VM.Standard.AMD.Generic"]
+          - eq: [worker_cpu_shape, "VM.Standard.Ampere.Generic"]
+          - eq: [worker_cpu_shape, "VM.Standard.Intel.Generic"]
+  worker_cpu_memory:
+    title: Memory (GB)
+    type: number
+    required: true
+    visible:
+      and:
+        - ${worker_cpu_enabled}
+        - or:
+          - eq: [worker_cpu_shape, "VM.Standard3.Flex"]
+          - eq: [worker_cpu_shape, "VM.Standard.A1.Flex"]
+          - eq: [worker_cpu_shape, "VM.Standard.E4.Flex"]
+          - eq: [worker_cpu_shape, "VM.Standard.E5.Flex"]
+          - eq: [worker_cpu_shape, "VM.Standard.x86.Generic"]
+          - eq: [worker_cpu_shape, "VM.Standard.AMD.Generic"]
+          - eq: [worker_cpu_shape, "VM.Standard.Ampere.Generic"]
+          - eq: [worker_cpu_shape, "VM.Standard.Intel.Generic"]
+  worker_cpu_boot_volume_size:
+    title: Boot volume size (GB)
+    type: number
+    visible: ${worker_cpu_enabled}
+  worker_cpu_image_type:
+    title: Image type
+    description: Whether to use a Platform, OKE, or Custom image for worker nodes.
+    type: enum
+    default: OKE
+    enum: [OKE, Platform, Custom]
+    required: true
+    visible: ${worker_cpu_enabled}
+  worker_cpu_image_os:
+    title: Operating system
+    type: enum
+    default: "Oracle Linux"
+    enum: ["Oracle Linux"]
+    required: true
+    visible:
+      and:
+        - ${worker_cpu_enabled}
+        - not:
+            - eq: [worker_cpu_image_type, Custom]
+  worker_cpu_image_os_version:
+    title: Operating system version
+    type: enum
+    default: "8"
+    enum: ["7.9", "8"]
+    required: true
+    visible:
+      and:
+        - ${worker_cpu_enabled}
+        - not:
+            - eq: [worker_image_type, Custom]
+  worker_cpu_image_custom_id:
+    title: Image ID
+    type: ocid
+    required: true
+    visible:
+      eq: [worker_image_type, Custom]
+  worker_cpu_image_platform_id:
+    title: Image
+    type: oci:core:image:id
+    required: true
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+      operatingSystem: ${worker_image_os}
+      operatingSystemVersion: ${worker_image_os_version}
+      shape: ${worker_shape_name}
+    visible:
+      and:
+        - ${worker_cpu_enabled}
+        - eq: [worker_image_type, Platform]
+
+  worker_gpu_enabled:
+    title: Create GPU pool
+    type: boolean
+    description: Create an OKE-managed node pool with GPU resources
+  worker_gpu_pool_size:
+    title: Number of GPU worker nodes
+    type: number
+    visible: ${worker_gpu_enabled}
+  worker_gpu_shape:
+    title: Shape
+    type: oci:core:instanceshape:name
+    pattern: "^(VM|BM)\\.GPU.*$"
+    visible: ${worker_gpu_enabled}
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+  worker_gpu_boot_volume_size:
+    title: Boot volume size (GB)
+    type: number
+    visible: ${worker_gpu_enabled}
+
+  worker_rdma_enabled:
+    title: Create GPU + RDMA pool
+    type: boolean
+    description: Create an worker pool with Cluster Network placement for RDMA networking
+  worker_rdma_pool_size:
+    title: Number of RDMA worker nodes
+    type: number
+    visible: ${worker_rdma_enabled}
+  worker_rdma_shape:
+    title: Shape
+    type: oci:core:instanceshape:name
+    pattern: "^BM\\.(HPC|GPU|Optimized).*$"
+    visible: ${worker_rdma_enabled}
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+  worker_rdma_boot_volume_size:
+    title: Boot volume size (GB)
+    type: number
+    visible: ${worker_rdma_enabled}
+
+outputGroups:
+  - title: Terraform
+    outputs:
+      - state_id
+
+  - title: Network
+    outputs:
+      - vcn_id
+      - ig_route_table_id
+      - nat_route_table_id
+
+  - title: Bastion
+    outputs:
+      - bastion_id
+      - bastion_subnet_id
+      - bastion_subnet_cidr
+      - bastion_nsg_id
+      - bastion_public_ip
+      - bastion_ssh_command
+      - bastion_ssh_secret_id
+
+  - title: Cluster
+    outputs:
+      - control_plane_subnet_id
+      - control_plane_subnet_cidr
+      - control_plane_nsg_id
+
+  - title: Load balancers
+    outputs:
+      - int_lb_subnet_id
+      - int_lb_subnet_cidr
+      - int_lb_nsg_id
+      - pub_lb_subnet_id
+      - pub_lb_subnet_cidr
+      - pub_lb_nsg_id
+
+  - title: Workers
+    outputs:
+      - worker_subnet_id
+      - worker_subnet_cidr
+      - worker_nsg_id
+
+outputs:
+  # Terraform
+  state_id:
+    title: State ID
+    type: copyableString
+
+  # Network
+  vcn_id:
+    title: VCN
+    type: ocid
+  ig_route_table_id:
+    title: Internet gateway route table
+    type: ocid
+  nat_route_table_id:
+    title: NAT gateway route table
+    type: ocid
+  subnet_cidrs:
+    visible: false
+  subnet_ids:
+    visible: false
+  network_security_rules:
+    visible: false
+
+  # Bastion
+  bastion_id:
+    title: Bastion instance
+    type: ocid
+  bastion_subnet_id:
+    title: Bastion subnet
+    type: ocid
+  bastion_subnet_cidr:
+    title: Bastion CIDR
+    type: string
+  bastion_nsg_id:
+    title: Bastion NSG
+    type: ocid
+  bastion_public_ip:
+    title: Bastion IP
+    type: copyableString
+  bastion_ssh_command:
+    title: Bastion SSH command
+    type: copyableString
+  bastion_ssh_secret_id:
+    title: Bastion SSH Vault secret
+    type: ocid
+
+  # Operator
+  operator_subnet_id:
+    title: Operator subnet
+    type: ocid
+  operator_subnet_cidr:
+    title: Operator CIDR
+    type: string
+  operator_nsg_id:
+    title: Operator NSG
+    type: ocid
+
+  # Cluster
+  control_plane_subnet_id:
+    title: Control plane subnet
+    type: ocid
+  control_plane_subnet_cidr:
+    title: Control plane CIDR
+    type: string
+  control_plane_nsg_id:
+    title: Control plane NSG
+    type: ocid
+
+  # Load balancers
+  int_lb_subnet_id:
+    title: Internal load balancer subnet
+    type: ocid
+  int_lb_subnet_cidr:
+    title: Internal load balancer CIDR
+    type: string
+  int_lb_nsg_id:
+    title: Internal load balancer NSG
+    type: ocid
+  pub_lb_subnet_id:
+    title: Public load balancer subnet
+    type: ocid
+  pub_lb_subnet_cidr:
+    title: Public load balancer CIDR
+    type: string
+  pub_lb_nsg_id:
+    title: Public load balancer NSG
+    type: ocid
+
+  # Workers
+  worker_subnet_id:
+    title: Worker subnet
+    type: ocid
+  worker_subnet_cidr:
+    title: Worker CIDR
+    type: string
+  worker_nsg_id:
+    title: Worker NSG
+    type: ocid
+
+  # Pods
+  pod_subnet_id:
+    title: Pod subnet
+    type: ocid
+  pod_subnet_cidr:
+    title: Pod CIDR
+    type: string
+  pod_nsg_id:
+    title: Pod NSG
+    type: ocid

@@ -1,0 +1,156 @@
+# Copyright (c) 2024 Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl
+
+title: "OKE: Model training & inference quickstart (cluster software)"
+description: An Oracle Cloud Infrastructure deployment with Kubernetes cluster software for large model training and inference on OKE.
+schemaVersion: 1.1.0
+version: "20230304"
+locale: "en"
+
+variableGroups:
+  - title: "Hidden"
+    visible: false
+    variables:
+      - api_fingerprint
+      - current_user_ocid
+      - region
+      - tenancy_ocid
+      - api_fingerprint
+      - oci_auth
+      - oci_profile
+      - gpu_namespace
+      - network_namespace
+      - monitoring_namespace
+      - jupyter_namespace
+      - inference_namespace
+
+  - title: "Network"
+    variables:
+      - vcn_compartment_ocid
+      - vcn_id
+
+  - title: Cluster
+    variables:
+      - compartment_ocid
+      - cluster_id
+
+  - title: Storage
+    variables:
+      - mount_fss
+      - fss_ad
+      - fss_mount_target_id
+      - fss_namespaces
+
+variables:
+  current_user_ocid:
+    title: User
+    type: ocid
+  oci_auth:
+    default: null
+  oci_profile:
+    default: null
+  tenancy_ocid:
+    title: Tenancy
+    type: oci:identity:compartment:id
+    required: true
+  region:
+    required: true
+    title: Region
+    type: oci:identity:region:name
+
+  # VCN
+  vcn_compartment_ocid:
+    title: Compartment
+    type: oci:identity:compartment:id
+    required: true
+    default: ${compartment_ocid}
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+  vcn_id:
+    title: Virtual Cloud Network (VCN)
+    type: oci:core:vcn:id
+    required: true
+    dependsOn:
+      compartmentId: ${vcn_compartment_ocid}
+
+  compartment_ocid:
+    title: Compartment
+    description: The default compartment for created resources
+    type: oci:identity:compartment:id
+    required: true
+  cluster_id:
+    type: oci:container:cluster:id
+    title: Cluster
+    description: The Container Engine for Kubernetes cluster
+    required: true
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+
+  # Storage
+  mount_fss:
+    title: Mount File System Service (FSS) volume
+    description: Provision a shared File Storage Service (FSS) filesystem
+    type: boolean
+    default: false
+    required: true
+  fss_ad:
+    title: FSS availability domain
+    type: oci:identity:availabilitydomain:name
+    required: true
+    visible: ${mount_fss}
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+  fss_mount_target_id:
+    title: File Storage Service (FSS) mount target
+    type: oci:mount:target:id
+    description: The Container Engine for Kubernetes cluster
+    required: true
+    visible: ${mount_fss}
+    dependsOn:
+      availabilityDomain: ${fss_ad}
+      compartmentId: ${compartment_ocid}
+  fss_namespaces:
+    title: FSS namespaces
+    description: List of Kubernetes namespaces for creation of shared FSS PVCs.
+    required: false
+    type: array
+    items:
+      type: string
+    unique_items: true
+    minItems: 0
+    visible: ${mount_fss}
+
+  # TODO Document summary:
+  #  NVIDIA/gpu-operator
+  #  NVIDIA/network-operator
+  #  Prometheus
+  #  Jupyter Lab
+
+outputGroups:
+  - title: Terraform
+    outputs:
+      - state_id
+
+  - title: Network
+    outputs:
+      - vcn_id
+
+  - title: Cluster
+    outputs:
+      - cluster_id
+
+outputs:
+  # Terraform
+  state_id:
+    title: State ID
+    type: copyableString
+
+  # Network
+  vcn_id:
+    title: VCN
+    type: ocid
+
+  # Cluster
+  cluster_id:
+    title: Cluster
+    type: ocid

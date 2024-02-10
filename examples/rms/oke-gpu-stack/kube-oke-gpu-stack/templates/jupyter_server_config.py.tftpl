@@ -1,0 +1,41 @@
+# Configuration file for jupyter-server.
+
+c = get_config()  #noqa
+
+#  Choices: any of [0, 10, 20, 30, 40, 50, 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL']
+# c.Application.log_datefmt = '%Y-%m-%d %H:%M:%S'
+# c.Application.log_format = '[%(name)s]%(highlevel)s %(message)s'
+# c.Application.log_level = 30
+# c.ServerApp.base_url = '/'
+c.ContentsManager.allow_hidden = True
+c.JupyterApp.answer_yes = True
+c.JupyterApp.config_file = "/etc/jupyter/jupyter_server_config.py"
+c.NotebookApp.allow_origin = '*'
+c.ServerApp.allow_external_kernels = True
+c.ServerApp.allow_origin = '*'
+c.ServerApp.allow_remote_access = True
+c.ServerApp.allow_root = True
+c.ServerApp.answer_yes = True
+c.ServerApp.authorizer_class = 'jupyter_server.auth.authorizer.AllowAllAuthorizer'
+c.ServerApp.autoreload = True
+c.ServerApp.config_file = "/etc/jupyter/jupyter_server_config.py"
+c.ServerApp.custom_display_url = 'https://jupyter.examples.oke'
+c.ServerApp.default_url = '/'
+c.ServerApp.disable_check_xsrf = True
+c.ServerApp.ip = '*'
+c.ServerApp.preferred_dir = '/mnt'
+c.ServerApp.root_dir = '/mnt'
+c.ServerApp.token = ''
+c.ServerApp.trust_xheaders = True
+c.Session.check_pid = False
+c.Session.username = 'oke-admin'
+
+#  set_secure_cookie docs for details.
+# c.ServerApp.cookie_options = {}
+## The random bytes used to secure cookies.
+#          By default this is a new random number every time you start the server.
+#          Set it to a value in a config file to enable logins to persist across server sessions.
+#          Note: Cookie secrets should be kept private, do not share config files with
+#          cookie_secret stored in plaintext (you can read the value from a file).
+# c.ServerApp.cookie_secret = b''
+# c.ServerApp.cookie_secret_file = ''
