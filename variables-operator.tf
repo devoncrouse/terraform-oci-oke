@@ -13,6 +13,12 @@ variable "operator_availability_domain" {
   type        = string
 }
 
+variable "operator_await_cloudinit" {
+  default     = true
+  description = "Whether to block until successful connection to operator and completion of cloud-init."
+  type        = bool
+}
+
 variable "operator_cloud_init" {
   default     = []
   description = "List of maps containing cloud init MIME part configuration for operator host. See https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/cloudinit_config.html#part for expected schema of each element."
