@@ -1,4 +1,4 @@
-# Copyright (c) 2022, 2023 Oracle Corporation and/or its affiliates.
+# Copyright (c) 2022, 2024 Oracle Corporation and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl
 
 resource "oci_core_instance_configuration" "workers" {
@@ -161,7 +161,6 @@ resource "oci_core_instance_configuration" "workers" {
     create_before_destroy = true
     ignore_changes = [
       defined_tags, freeform_tags, display_name,
-      instance_details[0].launch_details[0].metadata,
       instance_details[0].launch_details[0].defined_tags,
       instance_details[0].launch_details[0].freeform_tags,
       instance_details[0].launch_details[0].create_vnic_details[0].defined_tags,
